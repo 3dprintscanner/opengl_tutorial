@@ -9,8 +9,8 @@ using namespace std;
 
 
 GLuint program;
-GLint attribute_coord2d;
-GLuint vbo_triangle;
+GLint attribute_coord2d, attribute_v_colour, uniform_fade;
+GLuint vbo_triangle, vbo_triangle_colours;
 //const char* version;
 //int *profile;
 //int SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &profile);
@@ -41,6 +41,30 @@ bool init_resources(void){
 	glGenBuffers(1, &vbo_triangle);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
+
+	GLfloat triangle_colors[] = {
+		1.0, 1.0, 0.0,
+		0.0, 0.0, 1.0,
+		1.0, 0.0, 0.0,
+	};
+
+	glGenBuffers(1, &vbo_triangle_colours);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle_colours);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_colors), triangle_colors, GL_STATIC_DRAW);
+
+	GLfloat triangle_attributes[] = {
+
+		0.0, 0.8, 1.0, 1.0, 1.0,
+		-0.8, -0.8, 0.0, 0.0, 1.0,
+		0.8, -0.8, 1.0, 0.0, 0.0,
+	};
+
+	glGenBuffers(1, &vbo_triangle);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_attributes), triangle_attributes, GL_STATIC_DRAW);
+
+	
+
 	
 	
 	//GLint compile_ok = GL_FALSE,
@@ -107,6 +131,21 @@ bool init_resources(void){
 		return false;
 	}
 
+	const char* v_attribute_name = "v_color";
+	attribute_v_colour = glGetAttribLocation(program, v_attribute_name);
+
+	if (attribute_v_colour == -1){
+		cerr << "Could not bind attribute " << v_attribute_name << endl;
+		return false;
+	}
+
+	const char* uniform_name = "fade";
+	uniform_fade = glGetUniformLocation(program, uniform_name);
+	if (uniform_fade == -1){
+		cerr << "Could not bind uniform fade " << uniform_name << endl;
+		return false;
+	}
+
 	return true;
 }
 
@@ -115,16 +154,31 @@ void render(SDL_Window* window){
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glUseProgram(program);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
+	//glEnableVertexAttribArray(attribute_coord2d);
+	//	
+	//glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	//glEnableVertexAttribArray(attribute_v_colour);
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle_colours);
+	//glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
 	glEnableVertexAttribArray(attribute_coord2d);
-		
-	glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(attribute_v_colour);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
+	glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),0);
+	glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(2* sizeof(GLfloat)));
+	//glUniform1f(uniform_fade, 0.1);
+
+
+	
 
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glDisableVertexAttribArray(attribute_coord2d);
+	glEnableVertexAttribArray(attribute_v_colour);
 
 	SDL_GL_SwapWindow(window);
 };
@@ -134,6 +188,12 @@ void free_resources(){
 	glDeleteBuffers(1, &vbo_triangle);
 };
 
+void logic(){
+	float cur_fade = sinf(SDL_GetTicks() / 1000.0 * (2 * 3.14) / 5) / 2 + 0.5;
+	glUseProgram(program);
+	glUniform1f(uniform_fade, cur_fade);
+}
+
 void mainLoop(SDL_Window* window){
 	while (true){
 		SDL_Event ev;
@@ -141,6 +201,7 @@ void mainLoop(SDL_Window* window){
 			if (ev.type == SDL_QUIT)
 				return;
 		}
+		logic();
 		render(window);
 	}
 }
