@@ -2,6 +2,7 @@
 #include <iostream>
 #include "GL\glew.h"
 #include "SDL.h"
+#include "shader_utils.h"
 #pragma comment(lib, "glew32.lib")
 #pragma comment(lib, "SDL2.lib")
 using namespace std;
@@ -9,49 +10,85 @@ using namespace std;
 
 GLuint program;
 GLint attribute_coord2d;
+GLuint vbo_triangle;
+//const char* version;
+//int *profile;
+//int SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &profile);
+//if (profile == SDL_GL_CONTEXT_PROFILE_ES){
+//	version = "#version 100\n";
+//}
+//else {
+//	version = "#version 120\n";
+//}
+//
+//const GLchar* sources[] = {version,source};
+//
+//glShaderSource(res, 2, sources, NULL);
+
+
+
+
+
 
 bool init_resources(void){
 
-	GLint compile_ok = GL_FALSE, link_ok = GL_FALSE;
-	GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-	const char *vs_source =
-	#ifdef GL_ES_VERSION_2_0
-		"#version 100\n"  // OpenGL ES 2.0
-	#else
-		"#version 120\n"  // OpenGL 2.1
-	#endif
-		"attribute vec2 coord2d;                  "
-		"void main(void) {                        "
-		"  gl_Position = vec4(coord2d, 0.0, 1.0); "
-		"}";
-	glShaderSource(vs, 1, &vs_source, NULL);
-	glCompileShader(vs);
-	glGetShaderiv(vs, GL_COMPILE_STATUS, &compile_ok);
-	if (!compile_ok){
-		cerr << "Error in Vertex Shader" << endl;
-		return false;
-	}
+	GLfloat triangle_vertices[] = {
+		0.0, 0.8,
+		-0.8, -0.8,
+		0.8, -0.8,
+	};
 
-	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-	const char *fs_source =
-	#ifdef GL_ES_VERSION_2_0
-		"#version 100\n"  // OpenGL ES 2.0
-	#else
-		"#version 120\n"  // OpenGL 2.1
-	#endif
-		"void main(void) {        "
-		"  gl_FragColor[0] = gl_FragCoord.x/640.0; "
-		"  gl_FragColor[1] = gl_FragCoord.y/480.0; "
-		"  gl_FragColor[2] = 1.0; "
-		"}";
+	glGenBuffers(1, &vbo_triangle);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
+	
+	
+	//GLint compile_ok = GL_FALSE,
+	//GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+	//const char *vs_source =
+	//#ifdef GL_ES_VERSION_2_0
+	//	"#version 100\n"  // OpenGL ES 2.0
+	//#else
+	//	"#version 120\n"  // OpenGL 2.1
+	//#endif
+	//	"attribute vec2 coord2d;                  "
+	//	"void main(void) {                        "
+	//	"  gl_Position = vec4(coord2d, 0.0, 1.0); "
+	//	"}";
+	//glShaderSource(vs, 1, &vs_source, NULL);
+	//glCompileShader(vs);
+	//glGetShaderiv(vs, GL_COMPILE_STATUS, &compile_ok);
+	//if (!compile_ok){
+	//	cerr << "Error in Vertex Shader" << endl;
+	//	return false;
+	//}
 
-	glShaderSource(fs, 1, &fs_source, NULL);
-	glCompileShader(fs);
-	glGetShaderiv(fs, GL_COMPILE_STATUS, &compile_ok);
-	if (!compile_ok){
-		cerr << "Error in Fragment Shader" << endl;
-		return false;
-	}
+	//GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+	//const char *fs_source =
+	//#ifdef GL_ES_VERSION_2_0
+	//	"#version 100\n"  // OpenGL ES 2.0
+	//#else
+	//	"#version 120\n"  // OpenGL 2.1
+	//#endif
+	//	"void main(void) {        "
+	//	"  gl_FragColor[0] = gl_FragCoord.x/640.0; "
+	//	"  gl_FragColor[1] = gl_FragCoord.y/480.0; "
+	//	"  gl_FragColor[2] = 1.0; "
+	//	"}";
+
+	//
+	//glShaderSource(fs, 1, &fs_source, NULL);
+	//glCompileShader(fs);
+	//glGetShaderiv(fs, GL_COMPILE_STATUS, &compile_ok);
+	//if (!compile_ok){
+	//	cerr << "Error in Fragment Shader" << endl;
+	//	return false;
+	//}
+	GLint link_ok = GL_FALSE;
+	GLuint vs, fs;
+
+	if ((vs = create_shader("triangle.v.glsl", GL_VERTEX_SHADER)) == 0) return false;
+	if ((fs = create_shader("triangle.f.glsl", GL_FRAGMENT_SHADER)) == 0) return false;
 
 	program = glCreateProgram();
 	glAttachShader(program, vs);
@@ -60,6 +97,7 @@ bool init_resources(void){
 	glGetProgramiv(program, GL_LINK_STATUS, &link_ok);
 	if (!link_ok){
 		cerr << "Error in GLinkProgram" << endl;
+		print_log(program);
 		return false;
 	}
 	const char* attribute_name = "coord2d";
@@ -73,27 +111,28 @@ bool init_resources(void){
 }
 
 void render(SDL_Window* window){
-
+	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 1);
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glUseProgram(program);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
 	glEnableVertexAttribArray(attribute_coord2d);
-
-	GLfloat triangle_vertices[] = {
-		0.0, 0.8,
-		-0.8, -0.8,
-		0.8, -0.8,
-	};
-	glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 0, triangle_vertices);
+		
+	glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glDisableVertexAttribArray(attribute_coord2d);
 
 	SDL_GL_SwapWindow(window);
 };
 
-void free_resources(){ glDeleteProgram(program); };
+void free_resources(){
+	glDeleteProgram(program); 
+	glDeleteBuffers(1, &vbo_triangle);
+};
 
 void mainLoop(SDL_Window* window){
 	while (true){
@@ -109,9 +148,21 @@ void mainLoop(SDL_Window* window){
 int main(int argc, char* argv[]){
 	SDL_Init(SDL_INIT_VIDEO);
 	SDL_Window* window = SDL_CreateWindow("My First Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-	SDL_GL_CreateContext(window);
+	if (window == NULL){
+		cerr << "Error: can't create window" << SDL_GetError() << endl;
+		return EXIT_FAILURE;
+	}
+	if (SDL_GL_CreateContext(window) == NULL){
+		cerr << "Error: SDL_GL_Createcontext" << SDL_GetError() << endl;
+		return EXIT_FAILURE;
+	}
 
 	GLenum glew_status = glewInit();
+
+	if (!GLEW_VERSION_2_0){
+		cerr << "Error: your graphics card does not support OpenGL 2.0" << endl;
+		return EXIT_FAILURE;
+	}
 
 	if (glew_status != GLEW_OK){
 		cerr << "Error: GlewInit " << glewGetErrorString(glew_status) << endl;
