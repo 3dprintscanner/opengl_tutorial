@@ -3,14 +3,26 @@
 #include "GL\glew.h"
 #include "SDL.h"
 #include "shader_utils.h"
+#include "glm\glm.hpp"
+#include "glm\gtc\matrix_transform.hpp"
+#include "glm\gtc\type_ptr.hpp"
 #pragma comment(lib, "glew32.lib")
 #pragma comment(lib, "SDL2.lib")
 using namespace std;
 
 
 GLuint program;
-GLint attribute_coord2d, attribute_v_colour, uniform_fade;
+GLint attribute_coord2d, attribute_v_colour, uniform_fade, attribute_coord3d, uniform_m_transform;
 GLuint vbo_triangle, vbo_triangle_colours;
+
+
+struct attributes {
+
+	GLfloat coord3d[3];
+	GLfloat v_color[3];
+};
+
+
 //const char* version;
 //int *profile;
 //int SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &profile);
@@ -31,7 +43,7 @@ GLuint vbo_triangle, vbo_triangle_colours;
 
 
 bool init_resources(void){
-
+/*
 	GLfloat triangle_vertices[] = {
 		0.0, 0.8,
 		-0.8, -0.8,
@@ -61,7 +73,17 @@ bool init_resources(void){
 
 	glGenBuffers(1, &vbo_triangle);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_attributes), triangle_attributes, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_attributes), triangle_attributes, GL_STATIC_DRAW);*/
+
+	struct attributes new_triangle_attributes[] = {
+		{ { 0.0, 0.8, 0.0 }, { 1.0, 1.0, 0.0 } },
+		{ { -0.8, -0.8, 0.0 }, { 0.0, 0.0, 1.0 } },
+		{ { 0.8, -0.8, 0.0 }, { 1.0, 0.0, 0.0 } },
+	};
+
+	glGenBuffers(1, &vbo_triangle);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(new_triangle_attributes), new_triangle_attributes, GL_STATIC_DRAW);
 
 	
 
@@ -124,12 +146,12 @@ bool init_resources(void){
 		print_log(program);
 		return false;
 	}
-	const char* attribute_name = "coord2d";
+	/*const char* attribute_name = "coord2d";
 	attribute_coord2d = glGetAttribLocation(program, attribute_name);
 	if (attribute_coord2d == -1){
 		cerr << "Could not find attribute" << endl;
 		return false;
-	}
+	}*/
 
 	const char* v_attribute_name = "v_color";
 	attribute_v_colour = glGetAttribLocation(program, v_attribute_name);
@@ -144,6 +166,22 @@ bool init_resources(void){
 	if (uniform_fade == -1){
 		cerr << "Could not bind uniform fade " << uniform_name << endl;
 		return false;
+	}
+
+	const char* uniform_m4_name = "m_transform";
+	uniform_m_transform = glGetUniformLocation(program, uniform_m4_name);
+	if (uniform_m_transform == -1){
+		cerr << "Could not bind uniform fade " << uniform_m4_name << endl;
+		return false;
+	}
+
+	const char* attribute_name_3d = "coord3d";
+	attribute_coord3d = glGetAttribLocation(program, attribute_name_3d);
+
+	if (attribute_coord3d == -1){
+		cerr << "Could not bind attribute " << attribute_name_3d << endl;
+		return false;
+
 	}
 
 	return true;
@@ -163,12 +201,15 @@ void render(SDL_Window* window){
 	//glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle_colours);
 	//glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-	glEnableVertexAttribArray(attribute_coord2d);
-	glEnableVertexAttribArray(attribute_v_colour);
+	//glEnableVertexAttribArray(attribute_coord2d);
+	//glEnableVertexAttribArray(attribute_v_colour);
+	glEnableVertexAttribArray(attribute_coord3d);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
-	glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),0);
-	glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(2* sizeof(GLfloat)));
+	//glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),0);
+	//glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(2* sizeof(GLfloat)));
 	//glUniform1f(uniform_fade, 0.1);
+	glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE,sizeof(struct attributes), (GLvoid*)(3* sizeof(GLfloat)));
+	glVertexAttribPointer(attribute_coord3d, 3, GL_FLOAT, GL_FALSE, sizeof(struct attributes),0);
 
 
 	
@@ -192,6 +233,13 @@ void logic(){
 	float cur_fade = sinf(SDL_GetTicks() / 1000.0 * (2 * 3.14) / 5) / 2 + 0.5;
 	glUseProgram(program);
 	glUniform1f(uniform_fade, cur_fade);
+
+	float move = sinf(SDL_GetTicks() / 1000.0 * (2 * 3.14) / 5);
+	float angle = SDL_GetTicks() / 1000.0 * 45;
+	glm::vec3 axis_z(0, 0, 1);
+	glm::mat4 m_transform = glm::translate(glm::mat4(1.0f), glm::vec3(move, 0.0, 0.0)) * glm::rotate(glm::mat4(1.0f), glm::radians(angle), axis_z);
+
+	glUniformMatrix4fv(uniform_m_transform, 1, GL_FALSE, glm::value_ptr(m_transform));
 }
 
 void mainLoop(SDL_Window* window){
