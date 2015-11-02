@@ -12,15 +12,16 @@ using namespace std;
 
 
 GLuint program;
-GLint attribute_coord2d, attribute_v_colour, uniform_fade, attribute_coord3d, uniform_m_transform;
+GLint attribute_coord2d, attribute_v_colour, uniform_fade, attribute_coord3d, uniform_m_transform, uniform_mvp;
 GLuint vbo_triangle, vbo_triangle_colours;
+GLuint vbo_cube_vertices, vbo_cube_colors, ibo_cube_elements;
+int screen_width= 800, screen_height = 600;
 
-
-struct attributes {
-
-	GLfloat coord3d[3];
-	GLfloat v_color[3];
-};
+//struct attributes {
+//
+//	GLfloat coord3d[3];
+//	GLfloat v_color[3];
+//};
 
 
 //const char* version;
@@ -43,11 +44,11 @@ struct attributes {
 
 
 bool init_resources(void){
-/*
+	/*
 	GLfloat triangle_vertices[] = {
-		0.0, 0.8,
-		-0.8, -0.8,
-		0.8, -0.8,
+	0.0, 0.8,
+	-0.8, -0.8,
+	0.8, -0.8,
 	};
 
 	glGenBuffers(1, &vbo_triangle);
@@ -55,9 +56,9 @@ bool init_resources(void){
 	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
 
 	GLfloat triangle_colors[] = {
-		1.0, 1.0, 0.0,
-		0.0, 0.0, 1.0,
-		1.0, 0.0, 0.0,
+	1.0, 1.0, 0.0,
+	0.0, 0.0, 1.0,
+	1.0, 0.0, 0.0,
 	};
 
 	glGenBuffers(1, &vbo_triangle_colours);
@@ -66,29 +67,87 @@ bool init_resources(void){
 
 	GLfloat triangle_attributes[] = {
 
-		0.0, 0.8, 1.0, 1.0, 1.0,
-		-0.8, -0.8, 0.0, 0.0, 1.0,
-		0.8, -0.8, 1.0, 0.0, 0.0,
+	0.0, 0.8, 1.0, 1.0, 1.0,
+	-0.8, -0.8, 0.0, 0.0, 1.0,
+	0.8, -0.8, 1.0, 0.0, 0.0,
 	};
 
 	glGenBuffers(1, &vbo_triangle);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_attributes), triangle_attributes, GL_STATIC_DRAW);*/
 
-	struct attributes new_triangle_attributes[] = {
-		{ { 0.0, 0.8, 0.0 }, { 1.0, 1.0, 0.0 } },
-		{ { -0.8, -0.8, 0.0 }, { 0.0, 0.0, 1.0 } },
-		{ { 0.8, -0.8, 0.0 }, { 1.0, 0.0, 0.0 } },
+	//struct attributes new_triangle_attributes[] = {
+	//	{ { 0.0, 0.8, 0.0 }, { 1.0, 1.0, 0.0 } },
+	//	{ { -0.8, -0.8, 0.0 }, { 0.0, 0.0, 1.0 } },
+	//	{ { 0.8, -0.8, 0.0 }, { 1.0, 0.0, 0.0 } },
+	//};
+
+	//glGenBuffers(1, &vbo_triangle);
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(new_triangle_attributes), new_triangle_attributes, GL_STATIC_DRAW);
+
+
+	GLfloat cube_vertices[] = {
+		//front
+		-1.0, -1.0, 1.0,
+		1.0, -1.0, 1.0,
+		1.0, 1.0, 1.0,
+		-1.0, 1.0, 1.0,
+		//back
+		-1.0, -1.0, -1.0,
+		1.0, -1.0, -1.0,
+		1.0, 1.0, -1.0,
+		-1.0, 1.0, -1.0,
 	};
 
-	glGenBuffers(1, &vbo_triangle);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(new_triangle_attributes), new_triangle_attributes, GL_STATIC_DRAW);
+	glGenBuffers(1, &vbo_cube_vertices);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_cube_vertices);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
-	
+	GLfloat cube_colors[] = {
+		//front colors
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 0.0, 1.0,
+		1.0, 1.0, 1.0,
+		//back colors
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 0.0, 1.0,
+		1.0, 1.0, 1.0,
 
-	
-	
+	};
+
+	glGenBuffers(1, &vbo_cube_colors);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_cube_colors);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
+
+	GLushort cube_elements[] = {
+		//front
+		0, 1, 2,
+		2, 3, 0,
+		//top
+		1, 5, 6,
+		6, 2, 1,
+		//back
+		7, 6, 5,
+		5, 4, 7,
+		//bottom
+		4, 0, 3,
+		3, 7, 4,
+		//left
+		4, 5, 1,
+		1, 0, 4,
+		//right
+		3, 2, 6,
+		6, 7, 3,
+	};
+
+
+	glGenBuffers(1, &ibo_cube_elements);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_elements), cube_elements, GL_STATIC_DRAW);
+
 	//GLint compile_ok = GL_FALSE,
 	//GLuint vs = glCreateShader(GL_VERTEX_SHADER);
 	//const char *vs_source =
@@ -149,8 +208,8 @@ bool init_resources(void){
 	/*const char* attribute_name = "coord2d";
 	attribute_coord2d = glGetAttribLocation(program, attribute_name);
 	if (attribute_coord2d == -1){
-		cerr << "Could not find attribute" << endl;
-		return false;
+	cerr << "Could not find attribute" << endl;
+	return false;
 	}*/
 
 	const char* v_attribute_name = "v_color";
@@ -175,6 +234,13 @@ bool init_resources(void){
 		return false;
 	}
 
+	const char* uniform_mvp_name = "mvp";
+	uniform_mvp = glGetUniformLocation(program, uniform_mvp_name);
+	if (uniform_mvp == -1){
+		cerr << "Could not bind uniform fade " << uniform_mvp_name << endl;
+		return false;
+	}
+
 	const char* attribute_name_3d = "coord3d";
 	attribute_coord3d = glGetAttribLocation(program, attribute_name_3d);
 
@@ -190,7 +256,7 @@ bool init_resources(void){
 void render(SDL_Window* window){
 	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 1);
 	glClearColor(1.0, 1.0, 1.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(program);
 	//glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
 	//glEnableVertexAttribArray(attribute_coord2d);
@@ -203,30 +269,47 @@ void render(SDL_Window* window){
 
 	//glEnableVertexAttribArray(attribute_coord2d);
 	//glEnableVertexAttribArray(attribute_v_colour);
-	glEnableVertexAttribArray(attribute_coord3d);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
+	//glEnableVertexAttribArray(attribute_coord3d);
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
 	//glVertexAttribPointer(attribute_coord2d, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),0);
 	//glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(2* sizeof(GLfloat)));
 	//glUniform1f(uniform_fade, 0.1);
-	glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE,sizeof(struct attributes), (GLvoid*)(3* sizeof(GLfloat)));
-	glVertexAttribPointer(attribute_coord3d, 3, GL_FLOAT, GL_FALSE, sizeof(struct attributes),0);
+
+	glEnableVertexAttribArray(attribute_coord3d);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
+	glVertexAttribPointer(attribute_coord3d, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 
-	
-
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glDisableVertexAttribArray(attribute_coord2d);
 	glEnableVertexAttribArray(attribute_v_colour);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_colors);
+	glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
+	int size; glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+
+	//glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE,sizeof(struct attributes), (GLvoid*)(3* sizeof(GLfloat)));
+	//glVertexAttribPointer(attribute_coord3d, 3, GL_FLOAT, GL_FALSE, sizeof(struct attributes),0);
+
+
+
+	glDrawElements(GL_TRIANGLES, size / sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+	//glDrawArrays(GL_TRIANGLES, 0, 3);
+	//glDisableVertexAttribArray(attribute_coord2d);
+	//glEnableVertexAttribArray(attribute_v_colour);
+	glDisableVertexAttribArray(attribute_coord3d);
+	glDisableVertexAttribArray(attribute_v_colour);
 
 	SDL_GL_SwapWindow(window);
 };
 
 void free_resources(){
-	glDeleteProgram(program); 
+	glDeleteProgram(program);
 	glDeleteBuffers(1, &vbo_triangle);
+	glDeleteBuffers(1, &vbo_cube_vertices);
+	glDeleteBuffers(1, &vbo_cube_colors);
+	glDeleteBuffers(1, &ibo_cube_elements);
+
 };
 
 void logic(){
@@ -240,14 +323,35 @@ void logic(){
 	glm::mat4 m_transform = glm::translate(glm::mat4(1.0f), glm::vec3(move, 0.0, 0.0)) * glm::rotate(glm::mat4(1.0f), glm::radians(angle), axis_z);
 
 	glUniformMatrix4fv(uniform_m_transform, 1, GL_FALSE, glm::value_ptr(m_transform));
-}
 
+	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, -4.0));
+
+	glm::mat4 view = glm::lookAt(glm::vec3(0.0, 2.0, 0.0), glm::vec3(0.0, 0.0, -4.0), glm::vec3(0.0, 1.0, 0.0));
+
+	glm::mat4 projection = glm::perspective(45.0f, 1.0f*screen_width / screen_height, 0.1f, 10.0f);
+
+	glm::vec3 axis_y(0, 1, 0);
+
+	glm::mat4 anim = glm::rotate(glm::mat4(1.0f), glm::radians(angle), axis_y);
+
+	glm::mat4 mvp = projection * view * model * anim;
+
+	glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
+}
+void onResize(int width, int height){
+	screen_width = width;
+	screen_height = height;
+	glViewport(0, 0, screen_width, screen_height);
+}
 void mainLoop(SDL_Window* window){
 	while (true){
 		SDL_Event ev;
 		while (SDL_PollEvent(&ev)){
 			if (ev.type == SDL_QUIT)
 				return;
+			if (ev.type == SDL_WINDOWEVENT && ev.window.event == SDL_WINDOWEVENT_SIZE_CHANGED){
+				onResize(ev.window.data1, ev.window.data2);
+			}
 		}
 		logic();
 		render(window);
@@ -256,7 +360,7 @@ void mainLoop(SDL_Window* window){
 
 int main(int argc, char* argv[]){
 	SDL_Init(SDL_INIT_VIDEO);
-	SDL_Window* window = SDL_CreateWindow("My First Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+	SDL_Window* window = SDL_CreateWindow("My First Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screen_width, screen_height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 	if (window == NULL){
 		cerr << "Error: can't create window" << SDL_GetError() << endl;
 		return EXIT_FAILURE;
@@ -279,6 +383,10 @@ int main(int argc, char* argv[]){
 	}
 
 	if (!init_resources()) return EXIT_FAILURE;
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	mainLoop(window);
 
