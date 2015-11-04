@@ -36,7 +36,6 @@ char* file_read(const char* filename)
 {
 	SDL_RWops *rw = SDL_RWFromFile(filename, "rb");
 	if (rw == NULL) return NULL;
-
 	Sint64 res_size = SDL_RWsize(rw);
 	char* res = (char*)malloc(res_size + 1);
 	Sint64 nb_read_total = 0, nb_read = 1;

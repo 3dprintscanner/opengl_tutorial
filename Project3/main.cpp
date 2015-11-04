@@ -6,15 +6,18 @@
 #include "glm\glm.hpp"
 #include "glm\gtc\matrix_transform.hpp"
 #include "glm\gtc\type_ptr.hpp"
+#include "SDL_image.h"
 #pragma comment(lib, "glew32.lib")
 #pragma comment(lib, "SDL2.lib")
 using namespace std;
 
 
 GLuint program;
-GLint attribute_coord2d, attribute_v_colour, uniform_fade, attribute_coord3d, uniform_m_transform, uniform_mvp;
+GLint attribute_coord2d, attribute_v_colour, uniform_fade, attribute_coord3d, uniform_m_transform, uniform_mvp, attribute_texcoord;
 GLuint vbo_triangle, vbo_triangle_colours;
 GLuint vbo_cube_vertices, vbo_cube_colors, ibo_cube_elements;
+GLuint texture_id, program_id,vbo_tex_coords;
+GLint uniform_mytexture;
 int screen_width= 800, screen_height = 600;
 
 //struct attributes {
@@ -37,11 +40,6 @@ int screen_width= 800, screen_height = 600;
 //const GLchar* sources[] = {version,source};
 //
 //glShaderSource(res, 2, sources, NULL);
-
-
-
-
-
 
 bool init_resources(void){
 	/*
@@ -85,19 +83,63 @@ bool init_resources(void){
 	//glGenBuffers(1, &vbo_triangle);
 	//glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(new_triangle_attributes), new_triangle_attributes, GL_STATIC_DRAW);
+	SDL_Surface* res_texture = IMG_Load("res_texture.png");
 
+	if (res_texture == NULL){
+		cerr << "Could not load image" << res_texture << endl;
+		return false;
+	}
+
+	glGenTextures(1, &texture_id);
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, res_texture->w, res_texture->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, res_texture->pixels);
+	SDL_FreeSurface(res_texture);
+
+	//GLfloat cube_vertices[] = {
+	//	//front
+	//	-1.0, -1.0, 1.0,
+	//	1.0, -1.0, 1.0,
+	//	1.0, 1.0, 1.0,
+	//	-1.0, 1.0, 1.0,
+	//	//back
+	//	-1.0, -1.0, -1.0,
+	//	1.0, -1.0, -1.0,
+	//	1.0, 1.0, -1.0,
+	//	-1.0, 1.0, -1.0,
+	//};
 
 	GLfloat cube_vertices[] = {
-		//front
+		// front
 		-1.0, -1.0, 1.0,
 		1.0, -1.0, 1.0,
 		1.0, 1.0, 1.0,
 		-1.0, 1.0, 1.0,
-		//back
-		-1.0, -1.0, -1.0,
-		1.0, -1.0, -1.0,
+		// top
+		-1.0, 1.0, 1.0,
+		1.0, 1.0, 1.0,
 		1.0, 1.0, -1.0,
 		-1.0, 1.0, -1.0,
+		// back
+		1.0, -1.0, -1.0,
+		-1.0, -1.0, -1.0,
+		-1.0, 1.0, -1.0,
+		1.0, 1.0, -1.0,
+		// bottom
+		-1.0, -1.0, -1.0,
+		1.0, -1.0, -1.0,
+		1.0, -1.0, 1.0,
+		-1.0, -1.0, 1.0,
+		// left
+		-1.0, -1.0, -1.0,
+		-1.0, -1.0, 1.0,
+		-1.0, 1.0, 1.0,
+		-1.0, 1.0, -1.0,
+		// right
+		1.0, -1.0, 1.0,
+		1.0, -1.0, -1.0,
+		1.0, 1.0, -1.0,
+		1.0, 1.0, 1.0,
 	};
 
 	glGenBuffers(1, &vbo_cube_vertices);
@@ -122,31 +164,69 @@ bool init_resources(void){
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_cube_colors);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
 
+	//GLushort cube_elements[] = {
+	//	//front
+	//	0, 1, 2,
+	//	2, 3, 0,
+	//	//top
+	//	1, 5, 6,
+	//	6, 2, 1,
+	//	//back
+	//	7, 6, 5,
+	//	5, 4, 7,
+	//	//bottom
+	//	4, 0, 3,
+	//	3, 7, 4,
+	//	//left
+	//	4, 5, 1,
+	//	1, 0, 4,
+	//	//right
+	//	3, 2, 6,
+	//	6, 7, 3,
+	//};
+
 	GLushort cube_elements[] = {
-		//front
+		// front
 		0, 1, 2,
 		2, 3, 0,
-		//top
-		1, 5, 6,
-		6, 2, 1,
-		//back
-		7, 6, 5,
-		5, 4, 7,
-		//bottom
-		4, 0, 3,
-		3, 7, 4,
-		//left
-		4, 5, 1,
-		1, 0, 4,
-		//right
-		3, 2, 6,
-		6, 7, 3,
+		// top
+		4, 5, 6,
+		6, 7, 4,
+		// back
+		8, 9, 10,
+		10, 11, 8,
+		// bottom
+		12, 13, 14,
+		14, 15, 12,
+		// left
+		16, 17, 18,
+		18, 19, 16,
+		// right
+		20, 21, 22,
+		22, 23, 20,
 	};
+
 
 
 	glGenBuffers(1, &ibo_cube_elements);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_elements), cube_elements, GL_STATIC_DRAW);
+
+
+	GLfloat cube_texcoords[2*4*6] = {
+	
+		0.0,0.0,
+		1.0,0.0,
+		1.0,1.0,
+		0.0,1.0,
+	};
+
+	for (int i = 1; i < 6; i++)
+		memcpy(&cube_texcoords[i * 4 * 2], &cube_texcoords[0], 2 * 4 * sizeof(GLfloat));
+
+	glGenBuffers(1, &vbo_tex_coords);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_tex_coords);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cube_texcoords), cube_texcoords, GL_STATIC_DRAW);
 
 	//GLint compile_ok = GL_FALSE,
 	//GLuint vs = glCreateShader(GL_VERTEX_SHADER);
@@ -212,18 +292,25 @@ bool init_resources(void){
 	return false;
 	}*/
 
-	const char* v_attribute_name = "v_color";
-	attribute_v_colour = glGetAttribLocation(program, v_attribute_name);
+	//const char* v_attribute_name = "v_color";
+	//attribute_v_colour = glGetAttribLocation(program, v_attribute_name);
 
-	if (attribute_v_colour == -1){
-		cerr << "Could not bind attribute " << v_attribute_name << endl;
-		return false;
-	}
+	//if (attribute_v_colour == -1){
+	//	cerr << "Could not bind attribute " << v_attribute_name << endl;
+	//	return false;
+	//}
 
-	const char* uniform_name = "fade";
-	uniform_fade = glGetUniformLocation(program, uniform_name);
-	if (uniform_fade == -1){
-		cerr << "Could not bind uniform fade " << uniform_name << endl;
+	//const char* uniform_name = "fade";	const char* uniform_tex_name = "mytexture";
+
+	//uniform_fade = glGetUniformLocation(program, uniform_name);
+	//if (uniform_fade == -1){
+	//	cerr << "Could not bind uniform fade " << uniform_name << endl;
+	//	return false;
+	//}
+	const char* uniform_tex_name = "mytexture";
+	uniform_mytexture = glGetUniformLocation(program, uniform_tex_name);
+	if (uniform_mytexture == -1){
+		cerr << "Could not bind uniform mytexture " << uniform_tex_name << endl;
 		return false;
 	}
 
@@ -248,6 +335,13 @@ bool init_resources(void){
 		cerr << "Could not bind attribute " << attribute_name_3d << endl;
 		return false;
 
+	}
+
+	const char* tex_attribute_name = "texcoord";
+	attribute_texcoord = glGetAttribLocation(program, tex_attribute_name);
+	if (attribute_texcoord == -1){
+		cerr << "Could not bind attribute" << tex_attribute_name << endl;
+		return false;
 	}
 
 	return true;
@@ -275,20 +369,28 @@ void render(SDL_Window* window){
 	//glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(2* sizeof(GLfloat)));
 	//glUniform1f(uniform_fade, 0.1);
 
+	glActiveTexture(GL_TEXTURE0);
+	glUniform1i(uniform_mytexture, 0);
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+
 	glEnableVertexAttribArray(attribute_coord3d);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
 	glVertexAttribPointer(attribute_coord3d, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 
-	glEnableVertexAttribArray(attribute_v_colour);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_colors);
-	glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	//glEnableVertexAttribArray(attribute_v_colour);
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_colors);
+	//glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glEnableVertexAttribArray(attribute_texcoord);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_tex_coords);
+	glVertexAttribPointer(attribute_texcoord, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	int size; glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
 
-	//glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE,sizeof(struct attributes), (GLvoid*)(3* sizeof(GLfloat)));
+		//glVertexAttribPointer(attribute_v_colour, 3, GL_FLOAT, GL_FALSE,sizeof(struct attributes), (GLvoid*)(3* sizeof(GLfloat)));
 	//glVertexAttribPointer(attribute_coord3d, 3, GL_FLOAT, GL_FALSE, sizeof(struct attributes),0);
 
 
@@ -307,15 +409,16 @@ void free_resources(){
 	glDeleteProgram(program);
 	glDeleteBuffers(1, &vbo_triangle);
 	glDeleteBuffers(1, &vbo_cube_vertices);
-	glDeleteBuffers(1, &vbo_cube_colors);
+	//glDeleteBuffers(1, &vbo_cube_colors);
 	glDeleteBuffers(1, &ibo_cube_elements);
+	glDeleteTextures(1, &texture_id);
 
 };
 
 void logic(){
-	float cur_fade = sinf(SDL_GetTicks() / 1000.0 * (2 * 3.14) / 5) / 2 + 0.5;
+	/*float cur_fade = sinf(SDL_GetTicks() / 1000.0 * (2 * 3.14) / 5) / 2 + 0.5;
 	glUseProgram(program);
-	glUniform1f(uniform_fade, cur_fade);
+	glUniform1f(uniform_fade, cur_fade);*/
 
 	float move = sinf(SDL_GetTicks() / 1000.0 * (2 * 3.14) / 5);
 	float angle = SDL_GetTicks() / 1000.0 * 45;
